@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>task-manager - Dashboard</title>
+<link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div class="app-layout">
+<aside class="sidebar" id="sidebar">
+<div class="sidebar-header"><div class="logo">&#9776;</div><h2>task-manager</h2></div>
+<div class="user-card"><div class="avatar" id="userAvatar">U</div><div class="user-info"><span class="user-name" id="userName">User</span><span class="user-email" id="userEmail">user@email.com</span></div></div>
+<nav class="sidebar-nav" id="sidebarNav">
+<a class="nav-item active" data-tab="active-tasks"><span class="nav-icon">&#9744;</span> Active Tasks</a>
+<a class="nav-item" data-tab="history"><span class="nav-icon">&#128337;</span> Task History</a>
+<a class="nav-item" data-tab="calendar"><span class="nav-icon">&#128197;</span> Calendar</a>
+<a class="nav-item" data-tab="task-time"><span class="nav-icon">&#9200;</span> Task Time</a>
+<a class="nav-item" data-tab="notifications"><span class="nav-icon">&#128276;</span> Notifications <span class="badge" id="notifBadge" style="display:none">0</span></a>
+<a class="nav-item" data-tab="account"><span class="nav-icon">&#128100;</span> Account</a>
+<a class="nav-item" data-tab="settings"><span class="nav-icon">&#9881;</span> Settings</a>
+</nav>
+<div class="sidebar-footer"><button class="btn-logout" id="logoutBtn">&#128682; Sign Out</button></div>
+</aside>
+<main class="main-content">
+<header class="topbar"><button class="menu-toggle" id="menuToggle">&#9776;</button><h3 id="pageTitle" data-text="Active Tasks">Active Tasks</h3><div class="topbar-right"><span class="date-display" id="dateDisplay"></span></div></header>
+
+<div class="tab-content" id="tab-active-tasks">
+<div class="stats-row" id="statsRow">
+<div class="stat-card total"><span class="stat-num" id="statTotal">0</span> Total</div>
+<div class="stat-card pending"><span class="stat-num" id="statPending">0</span> Pending</div>
+<div class="stat-card completed"><span class="stat-num" id="statCompleted">0</span> Done</div>
+<div class="stat-card overdue"><span class="stat-num" id="statOverdue">0</span> Overdue</div>
+<div class="stat-card urgent"><span class="stat-num" id="statUrgent">0</span> High Priority</div>
+</div>
+<form class="task-form" id="taskForm">
+<input type="text" id="titleInput" placeholder="Task title" required>
+<input type="text" id="descInput" placeholder="Description">
+<select id="prioritySelect"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+<input type="date" id="dateInput"><input type="time" id="timeInput"><input type="text" id="categoryInput" placeholder="Category">
+<button type="submit">+ Add Task</button>
+</form>
+<div class="task-controls">
+<div class="filter-group"><button class="filter-btn active" data-filter="all">All</button><button class="filter-btn" data-filter="pending">Pending</button><button class="filter-btn" data-filter="completed">Completed</button></div>
+<select id="priorityFilter"><option value="">All Priorities</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+<input type="text" id="searchInput" placeholder="Search tasks...">
+</div>
+<div class="task-list" id="taskList"></div>
+</div>
+
+<div class="tab-content" id="tab-history" style="display:none">
+<h3>Completed Tasks</h3>
+<div class="task-controls"><input type="text" id="historySearch" placeholder="Search history..."><input type="date" id="historyDateFrom"><input type="date" id="historyDateTo"></div>
+<div class="task-list" id="historyList"></div>
+</div>
+
+<div class="tab-content" id="tab-calendar" style="display:none">
+<h3>Calendar</h3>
+<div class="calendar-nav"><button id="prevMonth">&larr;</button><span id="calendarMonthYear"></span><button id="nextMonth">&rarr;</button></div>
+<div class="calendar-grid" id="calendarGrid"></div>
+<div class="calendar-tasks" id="calendarTasks"></div>
+</div>
+
+<div class="tab-content" id="tab-task-time" style="display:none">
+<h3>Schedule Tasks</h3>
+<div class="time-filters"><input type="date" id="timeDate"><button id="viewTimeTasks" class="task-form button" style="padding:10px 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">View Schedule</button></div>
+<div class="time-grid" id="timeGrid"></div>
+</div>
+
+<div class="tab-content" id="tab-notifications" style="display:none">
+<div class="notif-header"><h3>Notifications</h3><button id="readAllBtn" class="btn-small">Mark all as read</button></div>
+<div class="notif-list" id="notifList"></div>
+</div>
+
+<div class="tab-content" id="tab-account" style="display:none">
+<h3>Account Information</h3>
+<form class="account-form" id="accountForm">
+<div class="input-group"><label>Name</label><input type="text" id="accName"></div>
+<div class="input-group"><label>Email</label><input type="email" id="accEmail"></div>
+<div class="input-group"><label>Phone</label><input type="tel" id="accPhone"></div>
+<button type="submit" class="task-form button" style="padding:10px 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Save Changes</button>
+</form>
+<div id="accountSuccess" class="alert alert-success" style="display:none"></div>
+</div>
+
+<div class="tab-content" id="tab-settings" style="display:none">
+<h3>Settings</h3>
+<form class="settings-form" id="settingsForm">
+<div class="setting-row"><span>Theme</span><select id="themeSelect"><option value="light">Light</option><option value="dark" selected>Dark</option></select></div>
+<div class="setting-row"><span>Email Notifications</span><label class="toggle"><input type="checkbox" id="emailNotif"><span class="slider"></span></label></div>
+<div class="setting-row"><span>Push Notifications</span><label class="toggle"><input type="checkbox" id="pushNotif"><span class="slider"></span></label></div>
+<button type="submit" class="task-form button" style="padding:10px 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Save Settings</button>
+</form>
+<div id="settingsSuccess" class="alert alert-success" style="display:none"></div>
+</div>
+</main>
+</div>
+<script src="/static/dashboard.js"></script>
+</body>
+</html>
