@@ -47,4 +47,5 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .alert-error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#fca5a5}
 .alert-success{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);color:#86efac}
 
-@media(max-width:480px){.auth-card{padding:24px 20px}.auth-container{padding:12px}}
+@media(max-width:480px){.auth-card{padding:24px 16px;border-radius:16px}.auth-container{padding:8px}.auth-header h1{font-size:22px}.auth-header{margin-bottom:24px}.input-group input,.input-group select{padding:10px 14px;font-size:13px}.btn-primary{padding:11px;font-size:14px}.form-options{flex-direction:column;gap:8px;align-items:flex-start}}
+@media(max-width:360px){.auth-card{padding:20px 12px;border-radius:12px}.auth-header h1{font-size:20px}.auth-header .logo{font-size:32px}.input-group{margin-bottom:14px}.input-group input,.input-group select{padding:8px 12px;font-size:12px}}

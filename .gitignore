@@ -5,3 +5,6 @@ __pycache__/
 *.db-wal
 database/
 .env
+
+# Local Netlify folder
+.netlify
