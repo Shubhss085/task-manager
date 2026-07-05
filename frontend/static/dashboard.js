@@ -1,7 +1,7 @@
-const API='/api';let token=localStorage.getItem('token');let currentUser=JSON.parse(localStorage.getItem('user')||'{}');let currentFilter='all';let tasks=[];let currentMonth=new Date().getMonth();let currentYear=new Date().getFullYear()
+const API='/api';let token=sessionStorage.getItem('token');let currentUser=JSON.parse(sessionStorage.getItem('user')||'{}');let currentFilter='all';let tasks=[];let currentMonth=new Date().getMonth();let currentYear=new Date().getFullYear()
 if(!token)window.location.href='/'
 
-function api(path,opts={}){opts.headers={...opts.headers,'Authorization':`Bearer ${token}`,'Content-Type':'application/json'};return fetch(`${API}${path}`,opts).then(async r=>{if(r.status===401){localStorage.clear();window.location.href='/'};const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');return d})}
+function api(path,opts={}){opts.headers={...opts.headers,'Authorization':`Bearer ${token}`,'Content-Type':'application/json'};return fetch(`${API}${path}`,opts).then(async r=>{if(r.status===401){sessionStorage.clear();window.location.href='/'};const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');return d})}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
 // ── Canvas Animated Background ──
@@ -22,7 +22,7 @@ function updateDate(){const n=new Date();document.getElementById('dateDisplay').
 updateDate()
 function updateUserUI(){if(currentUser.name){document.getElementById('userName').textContent=currentUser.name;document.getElementById('userAvatar').textContent=currentUser.name.charAt(0).toUpperCase()}document.getElementById('userEmail').textContent=currentUser.email||''}
 updateUserUI()
-document.getElementById('logoutBtn').addEventListener('click',()=>{localStorage.clear();window.location.href='/'})
+document.getElementById('logoutBtn').addEventListener('click',()=>{sessionStorage.clear();window.location.href='/'})
 
 async function loadStats(){try{const s=await api('/tasks/stats');animateNumber('statTotal',s.total);animateNumber('statPending',s.pending);animateNumber('statCompleted',s.completed);animateNumber('statOverdue',s.overdue);animateNumber('statUrgent',s.high_priority)}catch(e){}}
 function animateNumber(id,target){const el=document.getElementById(id);const current=parseInt(el.textContent)||0;const diff=target-current;if(diff===0)return;const steps=20;let step=0;const interval=setInterval(()=>{step++;const val=Math.round(current+diff*(step/steps));el.textContent=val;if(step>=steps){el.textContent=target;clearInterval(interval)}},30)}
@@ -56,12 +56,12 @@ async function renderNotifications(){try{const n=await api('/notifications');con
 document.getElementById('readAllBtn').addEventListener('click',async()=>{await api('/notifications/read-all',{method:'POST'});renderNotifications()})
 
 async function loadAccount(){try{const d=await api('/auth/me');currentUser=d.user;document.getElementById('accName').value=d.user.name||'';document.getElementById('accEmail').value=d.user.email||'';document.getElementById('accPhone').value=d.user.phone||''}catch(e){}}
-document.getElementById('accountForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/auth/update-profile',{method:'PUT',body:JSON.stringify({name:document.getElementById('accName').value.trim(),email:document.getElementById('accEmail').value.trim(),phone:document.getElementById('accPhone').value.trim()})});const d=await api('/auth/me');currentUser=d.user;localStorage.setItem('user',JSON.stringify(currentUser));updateUserUI();const s=document.getElementById('accountSuccess');s.textContent='Profile updated!';s.style.display='block';setTimeout(()=>s.style.display='none',3000)}catch(e){alert(e.message)}})
+document.getElementById('accountForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/auth/update-profile',{method:'PUT',body:JSON.stringify({name:document.getElementById('accName').value.trim(),email:document.getElementById('accEmail').value.trim(),phone:document.getElementById('accPhone').value.trim()})});const d=await api('/auth/me');currentUser=d.user;sessionStorage.setItem('user',JSON.stringify(currentUser));updateUserUI();const s=document.getElementById('accountSuccess');s.textContent='Profile updated!';s.style.display='block';setTimeout(()=>s.style.display='none',3000)}catch(e){alert(e.message)}})
 
 async function loadSettings(){try{const d=await api('/auth/me');const s=d.settings;if(s){document.getElementById('themeSelect').value=s.theme||'light';document.getElementById('emailNotif').checked=!!s.email_notifications;document.getElementById('pushNotif').checked=!!s.push_notifications}}catch(e){}}
 document.getElementById('settingsForm').addEventListener('submit',async e=>{e.preventDefault();try{const theme=document.getElementById('themeSelect').value;await api('/auth/update-profile',{method:'PUT',body:JSON.stringify({name:document.getElementById('accName').value,email:document.getElementById('accEmail').value,phone:document.getElementById('accPhone').value,theme,email_notifications:document.getElementById('emailNotif').checked,push_notifications:document.getElementById('pushNotif').checked})});applyTheme(theme);const s=document.getElementById('settingsSuccess');s.textContent='Settings saved!';s.style.display='block';setTimeout(()=>s.style.display='none',3000)}catch(e){alert(e.message)}})
 document.getElementById('themeSelect').addEventListener('change',e=>applyTheme(e.target.value))
-function applyTheme(t){document.body.classList.toggle('dark',t==='dark');document.body.style.background=t==='dark'?'':'#f0f2f5';localStorage.setItem('theme',t)}
+function applyTheme(t){document.body.classList.toggle('dark',t==='dark');document.body.style.background=t==='dark'?'':'#f0f2f5';sessionStorage.setItem('theme',t)}
 
 async function init(){await loadTasks();renderNotifications()}
 init()
