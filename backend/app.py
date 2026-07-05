@@ -1,4 +1,4 @@
-import sqlite3, hashlib, secrets, os, re, smtplib, json
+import hashlib, secrets, os, re, smtplib, json
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 from functools import wraps
@@ -13,10 +13,6 @@ app = Flask(__name__,
     static_url_path='/static')
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
-DB_DIR = '/tmp' if os.environ.get('LAMBDA_TASK_ROOT') else os.path.join(PROJECT, 'database')
-DB = os.path.join(DB_DIR, 'tasks.db')
-os.makedirs(DB_DIR, exist_ok=True)
-
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USER = os.environ.get('EMAIL_USER', '')
@@ -25,54 +21,69 @@ FROM_EMAIL = os.environ.get('FROM_EMAIL', 'noreply@taskmanager.com')
 BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:5000')
 
 # ── Database ──
-def get_db():
-    conn = sqlite3.connect(DB, timeout=20)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    return conn
+TURSO_DB_URL = os.environ.get('TURSO_DB_URL', '')
+TURSO_DB_TOKEN = os.environ.get('TURSO_DB_TOKEN', '')
 
-def init_db():
-    with get_db() as conn:
-        conn.executescript('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL, phone TEXT DEFAULT '',
-                password_hash TEXT NOT NULL, name TEXT DEFAULT '',
-                avatar TEXT DEFAULT '',
-                created_at TEXT DEFAULT (datetime('now','localtime')),
-                updated_at TEXT DEFAULT (datetime('now','localtime')));
-            CREATE TABLE IF NOT EXISTS auth_tokens (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
-                token TEXT UNIQUE NOT NULL,
-                created_at TEXT DEFAULT (datetime('now','localtime')),
-                expires_at TEXT, FOREIGN KEY (user_id) REFERENCES users(id));
-            CREATE TABLE IF NOT EXISTS password_resets (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL,
-                token TEXT UNIQUE NOT NULL, expires_at TEXT NOT NULL,
-                used INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT (datetime('now','localtime')));
-            CREATE TABLE IF NOT EXISTS tasks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
-                title TEXT NOT NULL, description TEXT DEFAULT '',
-                priority TEXT DEFAULT 'medium', status TEXT DEFAULT 'pending',
-                due_date TEXT DEFAULT '', due_time TEXT DEFAULT '',
-                category TEXT DEFAULT '',
-                created_at TEXT DEFAULT (datetime('now','localtime')),
-                updated_at TEXT DEFAULT (datetime('now','localtime')),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
-            CREATE TABLE IF NOT EXISTS notifications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
-                title TEXT DEFAULT '', message TEXT NOT NULL,
-                type TEXT DEFAULT 'info', read INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT (datetime('now','localtime')),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
-            CREATE TABLE IF NOT EXISTS user_settings (
-                user_id INTEGER PRIMARY KEY, theme TEXT DEFAULT 'light',
-                email_notifications INTEGER DEFAULT 1,
-                push_notifications INTEGER DEFAULT 1,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
-        ''')
+if TURSO_DB_URL and TURSO_DB_TOKEN:
+    import turso_db
+    turso_db.DB_URL = TURSO_DB_URL
+    turso_db.DB_TOKEN = TURSO_DB_TOKEN
+    get_db = turso_db.get_db
+    init_db = turso_db.init_db
+else:
+    import sqlite3
+    DB_DIR = os.path.join(PROJECT, 'database')
+    DB = os.path.join(DB_DIR, 'tasks.db')
+    os.makedirs(DB_DIR, exist_ok=True)
+
+    def get_db():
+        conn = sqlite3.connect(DB, timeout=20)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+
+    def init_db():
+        with get_db() as conn:
+            conn.executescript('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT UNIQUE NOT NULL, phone TEXT DEFAULT '',
+                    password_hash TEXT NOT NULL, name TEXT DEFAULT '',
+                    avatar TEXT DEFAULT '',
+                    created_at TEXT DEFAULT (datetime('now','localtime')),
+                    updated_at TEXT DEFAULT (datetime('now','localtime')));
+                CREATE TABLE IF NOT EXISTS auth_tokens (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+                    token TEXT UNIQUE NOT NULL,
+                    created_at TEXT DEFAULT (datetime('now','localtime')),
+                    expires_at TEXT, FOREIGN KEY (user_id) REFERENCES users(id));
+                CREATE TABLE IF NOT EXISTS password_resets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL,
+                    token TEXT UNIQUE NOT NULL, expires_at TEXT NOT NULL,
+                    used INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT (datetime('now','localtime')));
+                CREATE TABLE IF NOT EXISTS tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+                    title TEXT NOT NULL, description TEXT DEFAULT '',
+                    priority TEXT DEFAULT 'medium', status TEXT DEFAULT 'pending',
+                    due_date TEXT DEFAULT '', due_time TEXT DEFAULT '',
+                    category TEXT DEFAULT '',
+                    created_at TEXT DEFAULT (datetime('now','localtime')),
+                    updated_at TEXT DEFAULT (datetime('now','localtime')),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+                    title TEXT DEFAULT '', message TEXT NOT NULL,
+                    type TEXT DEFAULT 'info', read INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT (datetime('now','localtime')),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
+                CREATE TABLE IF NOT EXISTS user_settings (
+                    user_id INTEGER PRIMARY KEY, theme TEXT DEFAULT 'light',
+                    email_notifications INTEGER DEFAULT 1,
+                    push_notifications INTEGER DEFAULT 1,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
+            ''')
 init_db()
 
 # ── Helpers ──
